@@ -5,9 +5,6 @@
 ### Usage Intro
 There are two ways to use quantization:
 1. Load the already quantized model
-2. Quantize a float model and save it to local
-
-- Method 1
 ```bash
  # select the quantization method by `--quantize`
 docker run \
@@ -16,17 +13,18 @@ docker run \
     --quantize gptq # <------------
 ```
 
-- Method 2
+2. Quantize a float model and save it to local
 ```bash
 text-generation-server quantize path/to/float/model/ /path/to/save/quantized/model
 # Add --upload-to-model-id username/model_id to push the created model to the hub directly
 ```
+-  Only support quantizing float model with `GPTQ`.
 
 ### Implementation Details
 
 Implement a `QLinear` module in-tree, call the kernel out-of-tree.
 
-The `get_linear` is the entry to replace the `Linear` with `QLinear`.
+The `get_linear` is the entry to replace the `Linear` with the appropriate `QLinear` based on the selected algorithm name.
 
 #### GPTQ
 - `gptq.exllama.ExllamaQuantLinear`, using [exllama.q4_matmul](https://github.com/turboderp/exllama) as kernel
@@ -40,11 +38,10 @@ The `get_linear` is the entry to replace the `Linear` with `QLinear`.
 - marlin, `MarlinLinear`, call [marlin.mul](https://github.com/IST-DASLab/marlin) -->
 
 
-
-
 ### Q&A
 Q: Does the new quantization algo support depend on the transformers?
-A: No, it has own logic to load the quantized model. Only support quantizing float model with `GPTQ`.
+
+A: No, it has own logic to load or quantize the quantized model.
 
 
 ------------------------------
@@ -61,30 +58,30 @@ A: No, it has own logic to load the quantized model. Only support quantizing flo
 - We need to quantize the model with auto-round and export it with `GPTQ` format, and upstream it to Hugging Face hub.
 
 - Usage
-```bash
-text-generation-launcher \
---model-id INC/Llama-2-7b-Chat-Autoround \
---trust-remote-code --port 8080 \
---max-input-length 3072 --max-total-tokens 4096 --max-batch-prefill-tokens 4096 \
---quantize auto-round   # <---------------- 
+    ```bash
+    text-generation-launcher \
+    --model-id INC/Llama-2-7b-Chat-Autoround \
+    --trust-remote-code --port 8080 \
+    --max-input-length 3072 --max-total-tokens 4096 --max-batch-prefill-tokens 4096 \
+    --quantize auto-round   # <---------------- 
 
-```
+    ```
 
 ### Support quantizing the float model with Auto-round (Nice to have)
-- Users can use TGI to quantize the model with auto-round and save IT to locally.
-```bash
-text-generation-server quantize \
-    --MODEL_ID path/to/float/model/\
-    --OUTPUT_DIR /path/to/save/quantized/model \
-    --method autoround
-```
+- Users can use TGI to quantize the model with auto-round and save it to locally.
+    ```bash
+    text-generation-server quantize \
+        --MODEL_ID path/to/float/model/\
+        --OUTPUT_DIR /path/to/save/quantized/model \
+        --method autoround
+    ```
 
 ### Support model scope and quantization configurations
 - Align with auto-round support list
 - Model list: ...
 - configurations list: ...
 
-
+-- End of Proposal
 ------------------------------
 #### TGI Usage demo
 
